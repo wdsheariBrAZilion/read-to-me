@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Read to Me">
+<meta name="theme-color" content="#ECEFEA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161A18" media="(prefers-color-scheme: dark)">
+<title>Read to Me</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:opsz,wght@7..72,500;7..72,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ECEFEA; --surface:#F8F9F6; --ink:#1E2421; --muted:#5B6660; --line:#CDD3CC;
+  --accent:#9A5F0C; --fill:#E3A63B; --fill-soft:#F3D9A6; --danger:#A33A2A;
+  --serif:"Literata", Georgia, "Times New Roman", serif;
+  --sans:"Atkinson Hyperlegible", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#161A18; --surface:#1F2421; --ink:#E9ECE6; --muted:#9AA59E; --line:#333B36;
+    --accent:#F0B54E; --fill:#E3A63B; --fill-soft:#4A3B1F; --danger:#F08A78; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161A18; --surface:#1F2421; --ink:#E9ECE6; --muted:#9AA59E; --line:#333B36;
+  --accent:#F0B54E; --fill:#E3A63B; --fill-soft:#4A3B1F; --danger:#F08A78; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 var(--sans);-webkit-text-size-adjust:100%}
+main{max-width:640px;margin:0 auto;padding:20px 18px 150px}
+h1,h2{font-family:var(--serif);font-weight:700;line-height:1.15;margin:0}
+h1{font-size:2.1rem;letter-spacing:-.01em}
+h2{font-size:1.55rem}
+p{margin:.4em 0}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:.55em 1.1em;min-height:44px}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:700}
+button.link{border:0;background:none;padding:.4em 0;color:var(--accent);min-height:0;text-decoration:underline;text-underline-offset:3px}
+button.danger{color:var(--danger)}
+button:disabled{opacity:.45;cursor:default}
+:focus-visible{outline:3px solid var(--fill);outline-offset:2px}
+select,input[type=number]{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:.5em .6em;min-height:44px;width:100%}
+label.field{display:block;font-size:.9rem;color:var(--muted)}
+label.field>span{display:block;margin-bottom:4px}
+.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.row>*{flex:1 1 140px}
+.block{margin-top:28px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
+.drop{display:block;border:2px dashed var(--line);border-radius:18px;padding:28px 20px;text-align:center;background:var(--surface);cursor:pointer}
+.drop strong{font-family:var(--serif);font-size:1.25rem;display:block}
+.drop input{position:absolute;opacity:0;width:1px;height:1px}
+.books{list-style:none;padding:0;margin:0}
+.books li{border-top:1px solid var(--line)}
+.books button{all:unset;display:block;width:100%;padding:14px 0;cursor:pointer}
+.books button:focus-visible{outline:3px solid var(--fill)}
+.books .t{font-family:var(--serif);font-size:1.15rem;font-weight:500}
+/* The spine: one segment per part, filling as audio is made */
+.spine{display:flex;gap:3px;height:56px;margin:18px 0 6px;align-items:stretch}
+.seg{flex:1;position:relative;border:0;padding:0;min-height:0;border-radius:3px;background:var(--line);overflow:hidden}
+.seg .f{position:absolute;left:0;right:0;bottom:0;background:var(--fill);height:0;transition:height .3s}
+.seg.playing{outline:3px solid var(--ink);outline-offset:1px}
+@media (prefers-reduced-motion: reduce){.seg .f{transition:none}}
+.status{min-height:1.5em;font-size:.95rem}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;width:0;background:var(--fill)}
+.parts{list-style:none;padding:0;margin:0}
+.parts li{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:12px 0;border-top:1px solid var(--line);align-items:center}
+.parts .name{font-weight:700}
+.parts .acts{display:flex;gap:8px}
+.parts .acts button{padding:.4em .9em}
+.preview{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-family:var(--serif);font-size:.95rem;min-height:3em;margin-top:8px}
+.note{border-left:4px solid var(--fill);padding:6px 12px;background:var(--surface);border-radius:0 10px 10px 0;font-size:.92rem}
+.hidden{display:none!important}
+/* Player */
+.player{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));z-index:5}
+.player .in{max-width:640px;margin:0 auto}
+.player .now{font-family:var(--serif);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player .ctl{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.player .ctl button{min-width:52px;padding:.45em .7em}
+.player .play{width:64px;height:52px;font-size:1.3rem;background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.player input[type=range]{width:100%;accent-color:var(--fill);margin:6px 0 0}
+.times{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<main>
+  <!-- Library -->
+  <section id="libView">
+    <h1>Read to Me</h1>
+    <p class="muted">Turn a PDF into audio you can listen to offline. The voice runs on your phone, so nothing is uploaded anywhere.</p>
+    <label class="drop block" id="drop">
+      <input type="file" id="fileIn" accept="application/pdf,.pdf">
+      <strong>Add a PDF</strong>
+      <span class="muted small">Books, reports, articles. Text-based or scanned with selectable text.</span>
+    </label>
+    <p class="note small" id="jsWarn" style="margin-top:14px">This page isn’t running. If you opened it from the Files app, that’s why: Files only shows a preview and can’t run apps. Open it from its web address in Safari instead, such as yourname.github.io/read-to-me.</p>
+    <p class="status" id="libStatus" role="status"></p>
+    <div class="block" id="booksWrap">
+      <h2>Your books</h2>
+      <ul class="books" id="books"></ul>
+      <p class="muted" id="noBooks">Books you add will show up here.</p>
+    </div>
+    <details class="block">
+      <summary class="muted">Voice engine settings</summary>
+      <label class="field" style="margin-top:10px"><span>Engine</span>
+        <select id="engineSel">
+          <option value="auto">Automatic (fastest available)</option>
+          <option value="webgpu">Graphics chip (WebGPU) – fastest</option>
+          <option value="wasm">Compatibility mode – slower, uses less memory</option>
+        </select>
+      </label>
+      <p class="small muted">If the page reloads or crashes while generating, switch to compatibility mode.</p>
+    </details>
+  </section>
+
+  <!-- Book -->
+  <section id="bookView" class="hidden">
+    <button class="link" id="backBtn">Back to books</button>
+    <h2 id="bookTitle" style="margin-top:6px"></h2>
+    <p class="muted small" id="bookMeta"></p>
+
+    <!-- Setup: choose what to read -->
+    <div id="setup" class="block hidden">
+      <p>Choose where the reading starts and ends. Skip praise pages, the table of contents, notes, and the index.</p>
+      <div class="row">
+        <label class="field"><span>Start page</span><input type="number" id="startPg" min="1" inputmode="numeric"></label>
+        <label class="field"><span>End page</span><input type="number" id="endPg" min="1" inputmode="numeric"></label>
+      </div>
+      <p class="small muted" style="margin-top:10px">Start page begins:</p>
+      <div class="preview" id="startPrev"></div>
+      <p class="small muted" style="margin-top:10px">End page begins:</p>
+      <div class="preview" id="endPrev"></div>
+      <div class="row block">
+        <button class="primary" id="prepBtn">Prepare book</button>
+      </div>
+    </div>
+
+    <!-- Ready -->
+    <div id="ready" class="hidden">
+      <div class="spine" id="spine" aria-label="Parts of the book"></div>
+      <p class="small muted" id="spineNote"></p>
+
+      <div class="row block">
+        <label class="field"><span>Voice</span><select id="voiceSel"></select></label>
+        <label class="field" style="flex:0 1 120px"><span>Pace</span>
+          <select id="paceSel"><option value="0.9">Relaxed</option><option value="1" selected>Normal</option><option value="1.1">Brisk</option></select>
+        </label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="sampleBtn">Hear sample</button>
+        <button class="primary" id="genBtn">Make audio</button>
+      </div>
+      <p class="status" id="genStatus" role="status"></p>
+      <div class="bar hidden" id="genBar"><i></i></div>
+      <p class="note small block" id="tips">While audio is being made, keep this page open with the screen on and your phone plugged in. iPhone pauses web pages in the background. Already-made audio is saved, so you can stop anytime and pick up later.</p>
+
+      <div class="block">
+        <div class="top"><h2>Parts</h2><button class="link" id="redoBtn">Change pages</button></div>
+        <ul class="parts" id="parts"></ul>
+      </div>
+      <div class="block">
+        <button class="danger" id="delBtn">Delete this book</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="player hidden" id="player">
+  <div class="in">
+    <div class="now" id="nowTitle"></div>
+    <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Position">
+    <div class="times"><span id="tCur">0:00</span><span id="tDur">0:00</span></div>
+    <div class="ctl">
+      <button id="prevBtn" aria-label="Previous part">⏮</button>
+      <button id="backSkip" aria-label="Back 15 seconds">−15</button>
+      <button class="play" id="playBtn" aria-label="Play">▶</button>
+      <button id="fwdSkip" aria-label="Forward 30 seconds">+30</button>
+      <button id="nextBtn" aria-label="Next part">⏭</button>
+      <button id="rateBtn" aria-label="Playback speed">1×</button>
+    </div>
+  </div>
+</div>
+<audio id="audio" preload="auto" playsinline></audio>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+<script>
+// ===================== Storage (IndexedDB) =====================
+const DB_NAME = 'read-to-me', DB_VER = 1;
+let dbp;
+function db() {
+  if (!dbp) dbp = new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, DB_VER);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      if (!d.objectStoreNames.contains('books')) d.createObjectStore('books', { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('audio')) d.createObjectStore('audio');
+      if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  return dbp;
+}
+async function tx(store, mode, fn) {
+  const d = await db();
+  return new Promise((res, rej) => {
+    const t = d.transaction(store, mode), s = t.objectStore(store);
+    let out; const r = fn(s);
+    if (r) r.onsuccess = () => { out = r.result; };
+    t.oncomplete = () => res(out);
+    t.onerror = () => rej(t.error);
+    t.onabort = () => rej(t.error || new Error('Storage was interrupted.'));
+  });
+}
+const put = (store, val, key) => tx(store, 'readwrite', s => key === undefined ? s.put(val) : s.put(val, key));
+const get = (store, key) => tx(store, 'readonly', s => s.get(key));
+const getAll = (store, range) => tx(store, 'readonly', s => s.getAll(range));
+const del = (store, key) => tx(store, 'readwrite', s => s.delete(key));
+const pad = (n, w) => String(n).padStart(w, '0');
+const akey = (bid, ci, ki) => `${bid}|${pad(ci, 3)}|${pad(ki, 5)}`;
+const prefixRange = p => IDBKeyRange.bound(p, p + '\uffff');
+async function audioKeys(bid) {
+  return tx('audio', 'readonly', s => s.getAllKeys(prefixRange(bid + '|')));
+}
+
+// ===================== Helpers =====================
+const $ = id => document.getElementById(id);
+const fmt = s => { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return h ? `${h}:${pad(m, 2)}:${pad(x, 2)}` : `${m}:${pad(x, 2)}`; };
+const fmtLong = s => { const m = Math.round(s / 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} hr ${m % 60} min`; };
+function niceTitle(name) {
+  let t = name.replace(/\.pdf$/i, '').split(/\s--\s|--/)[0].replace(/_+/g, ' ').replace(/\s+/g, ' ').trim();
+  t = t.replace(/\s*:\s*/, ': ');
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Untitled';
+}
+
+// ===================== PDF import =====================
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+async function importPdf(file) {
+  const st = $('libStatus');
+  st.textContent = 'Opening PDF…';
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  const rawPages = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const tc = await page.getTextContent();
+    rawPages.push(itemsToLines(tc.items));
+    page.cleanup();
+    if (i % 5 === 0) st.textContent = `Reading pages… ${i} of ${pdf.numPages}`;
+  }
+  let outline = [];
+  try {
+    const o = await pdf.getOutline();
+    const walk = async (items, depth) => {
+      for (const it of items || []) {
+        try {
+          let dest = it.dest;
+          if (typeof dest === 'string') dest = await pdf.getDestination(dest);
+          if (Array.isArray(dest)) {
+            const idx = await pdf.getPageIndex(dest[0]);
+            outline.push({ title: (it.title || '').trim() || `Section`, page: idx + 1, depth });
+          }
+        } catch (e) {}
+        if (depth < 1) await walk(it.items, depth + 1);
+      }
+    };
+    await walk(o, 0);
+  } catch (e) {}
+  const pages = cleanPages(rawPages).map(joinLines);
+  const words = pages.join(' ').split(/\s+/).filter(Boolean).length;
+  if (words < 50) throw new Error('This PDF has no readable text. It may be a scan without a text layer. Run it through a free OCR tool first, then try again.');
+  // Guess start/end: first page with substantial prose after the opening, last before notes/index.
+  const front = /all rights reserved|isbn|library of congress|cataloging|printed in|^\s*(contents|praise for)/i;
+  const opener = /^\s*(preface|foreword|introduction|prologue|chapter\s+(1|one)\b|part\s+(1|one)\b|1\s+[A-Z])/i;
+  const limit = Math.floor(pages.length * 0.15);
+  let si = pages.findIndex((p, i) => i <= limit && opener.test(p) && !front.test(p) && p.split(/\s+/).length > 80);
+  if (si < 0) si = pages.findIndex((p, i) => i > 2 && p.split(/\s+/).length > 180 && !front.test(p));
+  let start = Math.max(1, si + 1);
+  let end = pages.length;
+  for (let i = Math.floor(pages.length * 0.6); i < pages.length; i++) {
+    if (/^\s*(notes|index|endnotes|bibliography|references|acknowledg?ments)\b/i.test(pages[i])) { end = i; break; }
+  }
+  const book = {
+    id: 'b' + Date.now().toString(36),
+    title: niceTitle(file.name), pages, outline, start, end,
+    numPages: pages.length, words, voice: 'af_heart', pace: 1, sections: null, added: Date.now()
+  };
+  await put('books', book);
+  pdf.destroy();
+  st.textContent = '';
+  return book;
+}
+
+// ===================== Text pipeline (shared with tests) =====================
+// ---- Core text pipeline: PDF -> clean pages -> sections -> speakable chunks ----
+
+// Turn one page's text items into lines, grouping by vertical position.
+function itemsToLines(items) {
+  const rows = [];
+  for (const it of items) {
+    const s = (it.str || '').replace(/\s+/g, ' ');
+    if (!s.trim()) continue;
+    const y = it.transform[5], x = it.transform[4], h = Math.abs(it.transform[3]) || 10;
+    let row = rows.find(r => Math.abs(r.y - y) < Math.max(2, h * 0.5));
+    if (!row) { row = { y, h, parts: [] }; rows.push(row); }
+    row.parts.push({ x, s, w: it.width || 0 });
+  }
+  rows.sort((a, b) => b.y - a.y);
+  return rows.map(r => {
+    r.parts.sort((a, b) => a.x - b.x);
+    let out = '', end = null;
+    for (const p of r.parts) {
+      if (out && end !== null && p.x - end > 1 && !out.endsWith(' ') && !p.s.startsWith(' ')) out += ' ';
+      out += p.s; end = p.x + p.w;
+    }
+    return out.replace(/\s+/g, ' ').trim();
+  }).filter(Boolean);
+}
+
+const norm = s => s.toLowerCase().replace(/[^a-z]/g, '');
+
+// Remove page numbers and running headers/footers that repeat across pages.
+function cleanPages(pages) {
+  const counts = new Map();
+  for (const lines of pages) {
+    const edges = new Set([...lines.slice(0, 2), ...lines.slice(-2)].map(norm).filter(k => k.length >= 3));
+    for (const k of edges) counts.set(k, (counts.get(k) || 0) + 1);
+  }
+  const isNum = l => /^[\W_]*(\d{1,4}|[ivxlc]{1,7})[\W_]*$/i.test(l);
+  return pages.map(lines => lines.filter((l, i) => {
+    if (isNum(l)) return false;
+    const edge = i < 2 || i >= lines.length - 2;
+    if (edge && l.length < 70) {
+      if ((counts.get(norm(l)) || 0) >= 4) return false;
+      // header lines like "12 Chapter Title" or "Chapter Title 12"
+      const stripped = l.replace(/^\d{1,4}\s+|\s+\d{1,4}$/g, '');
+      if (stripped !== l && (counts.get(norm(stripped)) || 0) >= 2) return false;
+    }
+    return true;
+  }));
+}
+
+// Join lines into flowing text, repairing hyphenated line breaks and common scan errors.
+function joinLines(lines) {
+  let t = '';
+  for (const l of lines) {
+    if (!t) { t = l; continue; }
+    if (/[A-Za-z]-$/.test(t) && /^[a-z]/.test(l)) t = t.slice(0, -1) + l;
+    else t += ' ' + l;
+  }
+  return t;
+}
+
+function fixScanText(t) {
+  t = t.replace(/[¢•■▪●◆]/g, ' ')
+       .replace(/[|_~^]{1,}/g, ' ')
+       .replace(/\s+([,.;:!?])/g, '$1')
+       .replace(/\s+/g, ' ');
+  // Scanned books often read "AI" as "Al". Fix it when it clearly happens a lot.
+  const al = (t.match(/\bAl\b/g) || []).length;
+  if (al > 5) t = t.replace(/\bAl\b/g, 'AI').replace(/\bAl(’s|'s|s)\b/g, 'AI$1');
+  return t.trim();
+}
+
+// Group pages into sections: by outline if available, otherwise ~targetWords per section.
+function buildSections(cleanTexts, startPage, endPage, outline, targetWords = 4000) {
+  const sections = [];
+  const marks = (outline || []).filter(o => o.page >= startPage && o.page <= endPage)
+    .sort((a, b) => a.page - b.page)
+    .filter((o, i, arr) => i === 0 || o.page !== arr[i - 1].page);
+  if (marks.length >= 2) {
+    if (marks[0].page > startPage) marks.unshift({ title: 'Opening', page: startPage });
+    marks.forEach((m, i) => {
+      const to = i + 1 < marks.length ? marks[i + 1].page - 1 : endPage;
+      sections.push({ title: m.title, from: m.page, to });
+    });
+  } else {
+    let from = startPage, words = 0;
+    for (let p = startPage; p <= endPage; p++) {
+      words += (cleanTexts[p - 1] || '').split(/\s+/).filter(Boolean).length;
+      if (words >= targetWords || p === endPage) {
+        sections.push({ title: `Part ${sections.length + 1}`, from, to: p });
+        from = p + 1; words = 0;
+      }
+    }
+  }
+  return sections.map(s => {
+    let text = '';
+    for (let p = s.from; p <= s.to; p++) {
+      const pt = cleanTexts[p - 1] || '';
+      if (!pt) continue;
+      if (/[A-Za-z]-$/.test(text) && /^[a-z]/.test(pt)) text = text.slice(0, -1) + pt;
+      else text += (text ? ' ' : '') + pt;
+    }
+    text = fixScanText(text);
+    return { ...s, chunks: chunkText(text) };
+  }).filter(s => s.chunks.length);
+}
+
+// Split into speakable pieces (~350 chars) on sentence boundaries.
+function chunkText(text, max = 350) {
+  const sentences = text.split(/(?<=[.!?…]["”’)\]]?)\s+(?=["“‘(A-Z0-9])/);
+  const chunks = [];
+  let cur = '';
+  const push = s => { if (s.trim()) chunks.push(s.trim()); };
+  for (let s of sentences) {
+    while (s.length > max * 1.4) {
+      let cut = s.lastIndexOf(', ', max);
+      if (cut < max * 0.4) cut = s.lastIndexOf(' ', max);
+      if (cut < 1) cut = max;
+      const head = s.slice(0, cut + 1);
+      if (cur && (cur + ' ' + head).length > max) { push(cur); cur = ''; }
+      push((cur ? cur + ' ' : '') + head); cur = '';
+      s = s.slice(cut + 1).trim();
+    }
+    if (cur && (cur + ' ' + s).length > max) { push(cur); cur = s; }
+    else cur = cur ? cur + ' ' + s : s;
+  }
+  push(cur);
+  return chunks;
+}
+
+
+
+// ===================== Library view =====================
+let current = null;           // current book object
+let counts = [];              // generated chunk counts per section
+async function showLibrary() {
+  $('bookView').classList.add('hidden');
+  $('libView').classList.remove('hidden');
+  const books = (await getAll('books')).sort((a, b) => b.added - a.added);
+  const ul = $('books'); ul.innerHTML = '';
+  $('noBooks').classList.toggle('hidden', books.length > 0);
+  for (const b of books) {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    const t = document.createElement('div'); t.className = 't'; t.textContent = b.title;
+    const m = document.createElement('div'); m.className = 'small muted';
+    if (b.sections) {
+      const total = b.sections.reduce((a, s) => a + s.chunks.length, 0);
+      const keys = await audioKeys(b.id);
+      const pct = total ? Math.round(keys.length / total * 100) : 0;
+      m.textContent = `${b.sections.length} parts, about ${fmtLong(b.estSecs || 0)} of listening. ${pct}% made.`;
+    } else m.textContent = `${b.numPages} pages. Not set up yet.`;
+    btn.append(t, m);
+    btn.onclick = () => openBook(b.id);
+    li.append(btn); ul.append(li);
+  }
+}
+
+$('fileIn').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  $('libStatus').textContent = `Opening “${f.name}”…`;
+  try { const b = await importPdf(f); openBook(b.id); }
+  catch (err) { $('libStatus').textContent = err.message || 'This PDF couldn’t be read. Try another file.'; }
+});
+
+// ===================== Book view =====================
+async function openBook(id) {
+  current = await get('books', id);
+  if (!current) return $('jsWarn').classList.add('hidden');
+if (location.protocol === 'file:') { $('jsWarn').textContent = 'This page is opened as a file, so saving audio won’t work. Open it from its web address instead, such as yourname.github.io/read-to-me.'; $('jsWarn').classList.remove('hidden'); }
+showLibrary();
+  $('libView').classList.add('hidden');
+  $('bookView').classList.remove('hidden');
+  $('bookTitle').textContent = current.title;
+  $('bookMeta').textContent = `${current.numPages} pages, about ${current.words.toLocaleString()} words`;
+  window.scrollTo(0, 0);
+  if (!current.sections) showSetup(); else await showReady();
+}
+
+function showSetup() {
+  $('ready').classList.add('hidden');
+  $('setup').classList.remove('hidden');
+  const n = current.numPages;
+  $('startPg').max = n; $('endPg').max = n;
+  $('startPg').value = current.start; $('endPg').value = current.end;
+  updatePreviews();
+}
+function snippet(p) {
+  const t = (current.pages[p - 1] || '').trim();
+  if (!t) return '(This page has no text.)';
+  return t.length > 160 ? t.slice(0, 160) + '…' : t;
+}
+function updatePreviews() {
+  $('startPrev').textContent = snippet(+$('startPg').value);
+  $('endPrev').textContent = snippet(+$('endPg').value);
+}
+$('startPg').addEventListener('input', updatePreviews);
+$('endPg').addEventListener('input', updatePreviews);
+
+$('prepBtn').onclick = async () => {
+  const s = Math.max(1, Math.min(current.numPages, +$('startPg').value || 1));
+  const e = Math.max(s, Math.min(current.numPages, +$('endPg').value || current.numPages));
+  if (current.sections && (await audioKeys(current.id)).length) {
+    if (!confirm('Changing pages deletes the audio already made for this book. Continue?')) return;
+    await deleteAudio(current.id);
+  }
+  current.start = s; current.end = e;
+  current.sections = buildSections(current.pages, s, e, current.outline);
+  const chars = current.sections.reduce((a, x) => a + x.chunks.join(' ').length, 0);
+  current.estSecs = chars / 15; // ~15 characters per second of speech
+  await put('books', current);
+  await showReady();
+};
+$('redoBtn').onclick = () => showSetup();
+$('backBtn').onclick = () => { stopGen(); showLibrary(); };
+$('delBtn').onclick = async () => {
+  if (!confirm(`Delete “${current.title}” and all its audio? This can’t be undone.`)) return;
+  stopGen();
+  if (playing.bid === current.id) { audio.pause(); $('player').classList.add('hidden'); playing = {}; }
+  await deleteAudio(current.id);
+  await del('books', current.id);
+  await del('kv', 'pos:' + current.id);
+  showLibrary();
+};
+async function deleteAudio(bid) {
+  await tx('audio', 'readwrite', s => s.delete(prefixRange(bid + '|')));
+}
+
+const VOICES = [
+  ['af_heart', 'Heart (American, warm)'], ['af_bella', 'Bella (American, bright)'], ['af_nicole', 'Nicole (American, soft)'],
+  ['af_sarah', 'Sarah (American)'], ['am_michael', 'Michael (American, deep)'], ['am_fenrir', 'Fenrir (American)'],
+  ['am_puck', 'Puck (American, lively)'], ['bf_emma', 'Emma (British)'], ['bf_isabella', 'Isabella (British)'],
+  ['bm_george', 'George (British, classic)'], ['bm_fable', 'Fable (British)'], ['bm_lewis', 'Lewis (British)']
+];
+const vs = $('voiceSel');
+for (const [v, n] of VOICES) { const o = document.createElement('option'); o.value = v; o.textContent = n; vs.append(o); }
+vs.onchange = async () => { current.voice = vs.value; await put('books', current); noteVoiceChange(); };
+$('paceSel').onchange = async () => { current.pace = +$('paceSel').value; await put('books', current); noteVoiceChange(); };
+function noteVoiceChange() {
+  if (counts.some(c => c > 0)) $('genStatus').textContent = 'New voice settings apply to audio made from here on.';
+}
+
+async function showReady() {
+  $('setup').classList.add('hidden');
+  $('ready').classList.remove('hidden');
+  vs.value = current.voice; $('paceSel').value = String(current.pace);
+  await refreshCounts();
+  renderParts();
+}
+async function refreshCounts() {
+  counts = current.sections.map(() => 0);
+  for (const k of await audioKeys(current.id)) counts[+k.split('|')[1]]++;
+}
+function renderSpine() {
+  const sp = $('spine'); sp.innerHTML = '';
+  current.sections.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.className = 'seg' + (playing.bid === current.id && playing.ci === i ? ' playing' : '');
+    b.setAttribute('aria-label', `${s.title}, ${Math.round(counts[i] / s.chunks.length * 100)}% made`);
+    const f = document.createElement('i'); f.className = 'f';
+    f.style.height = (counts[i] / s.chunks.length * 100) + '%';
+    b.append(f);
+    b.onclick = () => playSection(current, i);
+    sp.append(b);
+  });
+  const done = counts.reduce((a, c) => a + c, 0), total = current.sections.reduce((a, s) => a + s.chunks.length, 0);
+  $('spineNote').textContent = `${current.sections.length} parts, about ${fmtLong(current.estSecs)} of listening. ${Math.round(done / total * 100)}% made. Tap a part to play it.`;
+}
+function renderParts() {
+  renderSpine();
+  const ul = $('parts'); ul.innerHTML = '';
+  current.sections.forEach((s, i) => {
+    const li = document.createElement('li');
+    const info = document.createElement('div');
+    const n = document.createElement('div'); n.className = 'name'; n.textContent = s.title;
+    const m = document.createElement('div'); m.className = 'small muted';
+    const pct = Math.round(counts[i] / s.chunks.length * 100);
+    m.textContent = `Pages ${s.from}–${s.to}. ` + (pct === 100 ? 'Ready.' : pct ? `${pct}% made.` : 'Not made yet.');
+    info.append(n, m);
+    const acts = document.createElement('div'); acts.className = 'acts';
+    const pb = document.createElement('button'); pb.textContent = 'Play'; pb.disabled = !counts[i];
+    pb.onclick = () => playSection(current, i);
+    const db_ = document.createElement('button'); db_.textContent = 'Save'; db_.disabled = counts[i] < s.chunks.length;
+    db_.setAttribute('aria-label', `Save ${s.title} as an MP3 file`);
+    db_.onclick = () => saveSection(current, i);
+    acts.append(pb, db_);
+    li.append(info, acts); ul.append(li);
+  });
+}
+
+// ===================== Voice engine =====================
+let tts = null, ttsLoading = null;
+const kokoroReady = new Promise(r => { if (window.KokoroTTS) r(); else window.addEventListener('kokoro-ready', r, { once: true }); });
+const engineSel = $('engineSel');
+engineSel.value = localStorage.getItem('engine') || 'auto';
+engineSel.onchange = () => { try { localStorage.setItem('engine', engineSel.value); } catch (e) {} tts = null; ttsLoading = null; };
+
+async function loadTTS(status) {
+  if (tts) return tts;
+  if (ttsLoading) return ttsLoading;
+  ttsLoading = (async () => {
+    status('Loading the voice engine…');
+    await kokoroReady;
+    const pref = engineSel.value;
+    const tryGPU = pref === 'webgpu' || (pref === 'auto' && 'gpu' in navigator);
+    const files = {};
+    const progress_callback = p => {
+      if (p.status === 'progress' && p.total) {
+        files[p.file] = [p.loaded, p.total];
+        const vals = Object.values(files), l = vals.reduce((a, v) => a + v[0], 0), t = vals.reduce((a, v) => a + v[1], 0);
+        status(`Downloading the voice (one time only)… ${Math.round(l / t * 100)}% of ${Math.round(t / 1e6)} MB`);
+      }
+    };
+    const id = 'onnx-community/Kokoro-82M-v1.0-ONNX';
+    if (tryGPU) {
+      try {
+        tts = await window.KokoroTTS.from_pretrained(id, { dtype: 'fp32', device: 'webgpu', progress_callback });
+        tts._engine = 'graphics chip';
+        return tts;
+      } catch (e) { console.warn('WebGPU failed, falling back', e); }
+    }
+    tts = await window.KokoroTTS.from_pretrained(id, { dtype: 'q8', device: 'wasm', progress_callback });
+    tts._engine = 'compatibility mode';
+    return tts;
+  })();
+  try { return await ttsLoading; } catch (e) { ttsLoading = null; throw e; }
+}
+
+function toMp3(f32, rate) {
+  const s16 = new Int16Array(f32.length);
+  for (let i = 0; i < f32.length; i++) { const v = Math.max(-1, Math.min(1, f32[i])); s16[i] = v < 0 ? v * 0x8000 : v * 0x7fff; }
+  if (window.lamejs) {
+    const enc = new lamejs.Mp3Encoder(1, rate, 64), parts = [];
+    for (let i = 0; i < s16.length; i += 1152) { const b = enc.encodeBuffer(s16.subarray(i, i + 1152)); if (b.length) parts.push(new Uint8Array(b)); }
+    const e = enc.flush(); if (e.length) parts.push(new Uint8Array(e));
+    return { type: 'audio/mpeg', bytes: concatBytes(parts) };
+  }
+  // Fallback: WAV
+  const buf = new ArrayBuffer(44 + s16.length * 2), v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + s16.length * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+  v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, s16.length * 2, true); new Int16Array(buf, 44).set(s16);
+  return { type: 'audio/wav', bytes: new Uint8Array(buf) };
+}
+function concatBytes(parts) {
+  const out = new Uint8Array(parts.reduce((a, p) => a + p.length, 0)); let o = 0;
+  for (const p of parts) { out.set(p, o); o += p.length; }
+  return out;
+}
+
+// ===================== Generation =====================
+let gen = { running: false, stop: false };
+let wakeLock = null;
+async function holdWake() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {} }
+document.addEventListener('visibilitychange', () => { if (gen.running && document.visibilityState === 'visible') holdWake(); });
+function stopGen() { if (gen.running) gen.stop = true; }
+
+$('genBtn').onclick = async () => {
+  if (gen.running) { gen.stop = true; $('genBtn').textContent = 'Stopping…'; return; }
+  const book = current, setStatus = t => { if (current === book) $('genStatus').textContent = t; };
+  gen = { running: true, stop: false };
+  $('genBtn').textContent = 'Pause making audio';
+  $('genBar').classList.remove('hidden');
+  try { await navigator.storage?.persist?.(); } catch (e) {}
+  await holdWake();
+  try {
+    const engine = await loadTTS(setStatus);
+    const total = book.sections.reduce((a, s) => a + s.chunks.length, 0);
+    let made = counts.reduce((a, c) => a + c, 0), audioSecs = 0, workMs = 0;
+    for (let ci = 0; ci < book.sections.length && !gen.stop; ci++) {
+      const sec = book.sections[ci];
+      const have = new Set((await tx('audio', 'readonly', s => s.getAllKeys(prefixRange(`${book.id}|${pad(ci, 3)}|`)))).map(k => +k.split('|')[2]));
+      for (let ki = 0; ki < sec.chunks.length && !gen.stop; ki++) {
+        if (have.has(ki)) continue;
+        const t0 = performance.now();
+        const out = await engine.generate(sec.chunks[ki], { voice: book.voice, speed: book.pace });
+        const secs = out.audio.length / out.sampling_rate;
+        const enc = toMp3(out.audio, out.sampling_rate);
+        await put('audio', { type: enc.type, bytes: enc.bytes, secs }, akey(book.id, ci, ki));
+        workMs += performance.now() - t0; audioSecs += secs; made++;
+        if (current === book) { counts[ci]++; if (ki % 3 === 0 || ki === sec.chunks.length - 1) renderParts(); }
+        const ratio = audioSecs / (workMs / 1000);               // seconds of audio per second of work
+        const remainingAudio = (book.estSecs || 0) * (1 - made / total);
+        const eta = ratio > 0 ? remainingAudio / ratio : 0;
+        setStatus(`Making ${sec.title}… ${Math.round(made / total * 100)}% done. About ${fmtLong(eta)} left at ${ratio.toFixed(1)}× speed (${engine._engine}).`);
+        $('genBar').firstElementChild.style.width = (made / total * 100) + '%';
+      }
+    }
+    setStatus(gen.stop ? 'Paused. Tap “Make audio” to continue where it left off.' : 'All audio is made. You can listen offline now.');
+  } catch (err) {
+    console.error(err);
+    setStatus(`Audio couldn’t be made: ${err.message || err}. If this keeps happening, switch to compatibility mode in Voice engine settings on the books page.`);
+  } finally {
+    gen.running = false;
+    try { await wakeLock?.release(); } catch (e) {}
+    $('genBtn').textContent = 'Make audio';
+    if (current === book) renderParts();
+  }
+};
+
+$('sampleBtn').onclick = async () => {
+  const btn = $('sampleBtn');
+  if (gen.running) { $('genStatus').textContent = 'Pause making audio to hear a sample.'; return; }
+  btn.disabled = true;
+  try {
+    const engine = await loadTTS(t => $('genStatus').textContent = t);
+    $('genStatus').textContent = 'Making a sample…';
+    const out = await engine.generate('Here is how this voice sounds. Pick the one you would enjoy listening to for hours.', { voice: current.voice, speed: current.pace });
+    const enc = toMp3(out.audio, out.sampling_rate);
+    const a = new Audio(URL.createObjectURL(new Blob([enc.bytes], { type: enc.type })));
+    await a.play();
+    $('genStatus').textContent = '';
+  } catch (err) { $('genStatus').textContent = `The sample couldn’t play: ${err.message || err}`; }
+  btn.disabled = false;
+};
+
+// ===================== Player =====================
+const audio = $('audio');
+let playing = {};   // { bid, ci, title, book }
+const RATES = [1, 1.25, 1.5, 1.75, 2, 0.8];
+let rate = +(localStorage.getItem('rate') || 1);
+
+async function sectionBlob(book, ci) {
+  const rows = await getAll('audio', prefixRange(`${book.id}|${pad(ci, 3)}|`));
+  if (!rows.length) return null;
+  return new Blob(rows.map(r => r.bytes), { type: rows[0].type });
+}
+async function playSection(book, ci, resumeAt) {
+  const blob = await sectionBlob(book, ci);
+  if (!blob) { if (current === book) $('genStatus').textContent = 'That part has no audio yet. Tap “Make audio” first.'; return; }
+  if (audio.src) URL.revokeObjectURL(audio.src);
+  playing = { bid: book.id, ci, book };
+  audio.src = URL.createObjectURL(blob);
+  audio.playbackRate = rate;
+  $('player').classList.remove('hidden');
+  $('nowTitle').textContent = `${book.title}: ${book.sections[ci].title}`;
+  let start = resumeAt;
+  if (start === undefined) {
+    const pos = await get('kv', 'pos:' + book.id);
+    start = pos && pos.ci === ci ? pos.t : 0;
+  }
+  audio.addEventListener('loadedmetadata', () => { if (start > 0 && start < audio.duration - 2) audio.currentTime = start; }, { once: true });
+  try { await audio.play(); } catch (e) {}
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: book.sections[ci].title, album: book.title, artist: 'Read to Me' });
+  }
+  if (current && current.id === book.id && current.sections) renderSpine();
+}
+async function saveSection(book, ci) {
+  const blob = await sectionBlob(book, ci);
+  if (!blob) return;
+  const ext = blob.type === 'audio/mpeg' ? 'mp3' : 'wav';
+  const name = `${book.title.slice(0, 60)} - ${pad(ci + 1, 2)} ${book.sections[ci].title}.${ext}`.replace(/[\\/:*?"<>|]/g, '');
+  const file = new File([blob], name, { type: blob.type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: name }); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+
+$('playBtn').onclick = () => audio.paused ? audio.play() : audio.pause();
+$('backSkip').onclick = () => { audio.currentTime = Math.max(0, audio.currentTime - 15); };
+$('fwdSkip').onclick = () => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 30); };
+$('prevBtn').onclick = () => { if (!playing.book) return; if (audio.currentTime > 5 || playing.ci === 0) audio.currentTime = 0; else playSection(playing.book, playing.ci - 1, 0); };
+$('nextBtn').onclick = () => { if (playing.book && playing.ci < playing.book.sections.length - 1) playSection(playing.book, playing.ci + 1, 0); };
+$('rateBtn').textContent = rate + '×';
+$('rateBtn').onclick = () => {
+  rate = RATES[(RATES.indexOf(rate) + 1) % RATES.length];
+  audio.playbackRate = rate; $('rateBtn').textContent = rate + '×';
+  try { localStorage.setItem('rate', rate); } catch (e) {}
+};
+audio.addEventListener('play', () => { $('playBtn').textContent = '❚❚'; $('playBtn').setAttribute('aria-label', 'Pause'); });
+audio.addEventListener('pause', () => { $('playBtn').textContent = '▶'; $('playBtn').setAttribute('aria-label', 'Play'); savePos(); });
+let seeking = false, lastSave = 0;
+audio.addEventListener('timeupdate', () => {
+  if (!seeking && audio.duration) $('seek').value = audio.currentTime / audio.duration * 1000;
+  $('tCur').textContent = fmt(audio.currentTime); $('tDur').textContent = fmt(audio.duration);
+  if (Date.now() - lastSave > 5000) { lastSave = Date.now(); savePos(); }
+});
+audio.addEventListener('ended', () => {
+  const b = playing.book;
+  if (b && playing.ci < b.sections.length - 1) playSection(b, playing.ci + 1, 0);
+});
+$('seek').addEventListener('input', () => { seeking = true; if (audio.duration) $('tCur').textContent = fmt($('seek').value / 1000 * audio.duration); });
+$('seek').addEventListener('change', () => { if (audio.duration) audio.currentTime = $('seek').value / 1000 * audio.duration; seeking = false; });
+function savePos() { if (playing.bid) put('kv', { ci: playing.ci, t: audio.currentTime }, 'pos:' + playing.bid).catch(() => {}); }
+if ('mediaSession' in navigator) {
+  const ms = navigator.mediaSession;
+  ms.setActionHandler('play', () => audio.play());
+  ms.setActionHandler('pause', () => audio.pause());
+  ms.setActionHandler('seekbackward', () => $('backSkip').onclick());
+  ms.setActionHandler('seekforward', () => $('fwdSkip').onclick());
+  ms.setActionHandler('previoustrack', () => $('prevBtn').onclick());
+  ms.setActionHandler('nexttrack', () => $('nextBtn').onclick());
+}
+window.addEventListener('pagehide', savePos);
+
+showLibrary();
+</script>
+<script type="module">
+import { KokoroTTS } from 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js';
+window.KokoroTTS = KokoroTTS;
+window.dispatchEvent(new Event('kokoro-ready'));
+</script>
+</body>
+</html>
